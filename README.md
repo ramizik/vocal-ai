@@ -4,6 +4,11 @@
 
 VocalAIAgent is a comprehensive AI-powered vocal coaching system that combines real-time voice analysis, intelligent coaching, and conversational AI agents to create a holistic vocal development experience. Built during the world's biggest AI in-person hackathon where over 1,200 developers competed.
 
+YouTube Demo:
+
+[![Vocal AI](https://img.youtube.com/vi/4XWiMuE9wwM/0.jpg)](https://youtu.be/4XWiMuE9wwM)
+
+
 ## 🎯 Problem Statement
 
 Vocal training can be an isolated and inconsistent process. Singers and speakers often struggle with:
