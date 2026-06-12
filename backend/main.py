@@ -12,6 +12,10 @@ import asyncio
 import requests
 import httpx
 
+# Configure logging first so all subsequent checks and startup logs are properly formatted
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Import our custom voice analyzer and Fetch AI service
 from voice_analyzer import VoiceAnalyzer
 from fetch_ai_service import FetchAiVocalCoach
@@ -23,48 +27,40 @@ from lesson_feedback_service import lesson_feedback_service
 # Supabase client for database access
 from supabase import create_client, Client
 
-# Import Letta service with error handling
+# --- Phase 1: Check Optional Integrations & Set Feature Flags ---
+
+# Check Letta integration availability
+LETTA_AVAILABLE = False
+letta_coach = None
 try:
     from letta_service import letta_coach, ConversationType
     LETTA_AVAILABLE = True
-    logging.info("Letta service imported successfully")
+    logger.info("Letta service imported successfully")
 except ImportError as e:
-    logging.warning(f"Letta service not available: {str(e)}")
-    LETTA_AVAILABLE = False
-    letta_coach = None
+    logger.warning(f"Letta service not available: {str(e)}")
 
-# Import Enhanced Letta service
+# Check Enhanced Letta integration availability
+ENHANCED_LETTA_AVAILABLE = False
+enhanced_letta_router = None
 try:
     from enhanced_letta_service import EnhancedLettaService
     from enhanced_api_endpoints import router as enhanced_letta_router
     ENHANCED_LETTA_AVAILABLE = True
-    logging.info("Enhanced Letta service imported successfully")
+    logger.info("Enhanced Letta service imported successfully")
 except ImportError as e:
-    logging.warning(f"Enhanced Letta service not available: {str(e)}")
-    ENHANCED_LETTA_AVAILABLE = False
+    logger.warning(f"Enhanced Letta service not available: {str(e)}")
 
-# Import Groq client for lyrics generation
+# Check Groq integration availability
+GROQ_AVAILABLE = False
+Groq = None
 try:
     from groq import Groq
     GROQ_AVAILABLE = True
-    logging.info("Groq SDK imported successfully")
+    logger.info("Groq SDK imported successfully")
 except ImportError as e:
-    logging.warning(f"Groq SDK not available: {str(e)}")
-    GROQ_AVAILABLE = False
-    Groq = None
+    logger.warning(f"Groq SDK not available: {str(e)}")
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-app = FastAPI(title="Vocal Coach AI Backend", version="1.0.0")
-
-# Include enhanced Letta routes if available
-if ENHANCED_LETTA_AVAILABLE:
-    app.include_router(enhanced_letta_router)
-    logger.info("Enhanced Letta API endpoints registered")
-else:
-    logger.warning("Enhanced Letta API endpoints not available")
+# --- Phase 2: Initialize External Clients ---
 
 # Initialize Supabase client
 supabase_url = os.getenv("SUPABASE_URL")
@@ -77,23 +73,6 @@ if supabase_url and supabase_key:
 else:
     logger.warning("Supabase credentials not found. Some features may not work.")
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Initialize services
-voice_analyzer = VoiceAnalyzer()
-fetch_ai_coach: Optional[FetchAiVocalCoach] = None
-
-# In-memory cache for conversation contexts
-# In a production environment, this should be replaced with a more robust solution like Redis
-conversation_contexts: Dict[str, Any] = {}
-
 # Initialize Groq client
 groq_client: Optional[Groq] = None
 groq_api_key = os.getenv("GROQ_API_KEY")
@@ -103,6 +82,35 @@ if groq_api_key and GROQ_AVAILABLE:
     logger.info("Groq client initialized successfully")
 else:
     logger.warning("Groq API key not found or SDK not available. Lyrics generation and vocal feedback will use fallback.")
+
+# --- Phase 3: Initialize Core Local Services & State ---
+
+voice_analyzer = VoiceAnalyzer()
+fetch_ai_coach: Optional[FetchAiVocalCoach] = None
+
+# In-memory cache for conversation contexts
+# In a production environment, this should be replaced with a more robust solution like Redis
+conversation_contexts: Dict[str, Any] = {}
+
+# --- Phase 4: Construct FastAPI App, Middleware, and Router Setup ---
+
+app = FastAPI(title="Vocal Coach AI Backend", version="1.0.0")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Configure appropriately for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include enhanced Letta routes if available
+if ENHANCED_LETTA_AVAILABLE and enhanced_letta_router:
+    app.include_router(enhanced_letta_router)
+    logger.info("Enhanced Letta API endpoints registered")
+else:
+    logger.warning("Enhanced Letta API endpoints not available")
 
 # Background task to start Fetch AI agent
 @app.on_event("startup")
