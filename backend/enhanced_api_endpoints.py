@@ -58,7 +58,7 @@ async def analyze_vocal_evolution(request: PersonalityEvolutionRequest):
             user_id=request.user_id,
             vocal_metrics=request.vocal_metrics
         )
-        
+
         return {
             "success": True,
             "data": evolution_data,
@@ -77,7 +77,7 @@ async def monitor_vocal_health(request: VocalAnalysisRequest):
             vocal_metrics=request.vocal_metrics,
             environmental_data=request.environmental_data
         )
-        
+
         return {
             "success": True,
             "data": health_analysis,
@@ -96,7 +96,7 @@ async def get_contextual_coaching(request: ContextualCoachingRequest):
             context=request.context,
             user_message=request.message
         )
-        
+
         return {
             "success": True,
             "data": coaching_response,
@@ -111,7 +111,7 @@ async def get_personality_profile(user_id: str) -> PersonalityProfileResponse:
     """Get user's vocal personality profile"""
     try:
         profile = await enhanced_letta.get_personality_profile(user_id)
-        
+
         return PersonalityProfileResponse(
             user_id=profile.user_id,
             personality_type=profile.personality_type.value,
@@ -130,7 +130,7 @@ async def get_health_profile(user_id: str) -> HealthProfileResponse:
     """Get user's vocal health profile"""
     try:
         profile = await enhanced_letta.get_health_profile(user_id)
-        
+
         return HealthProfileResponse(
             user_id=profile.user_id,
             current_risk_level=profile.current_risk_level.value,
@@ -155,23 +155,23 @@ async def integrated_vocal_analysis(
     try:
         # Run personality and health analysis in parallel
         import asyncio
-        
+
         personality_task = enhanced_letta.analyze_vocal_evolution(
             user_id=request.user_id,
             vocal_metrics=request.vocal_metrics
         )
-        
+
         health_task = enhanced_letta.monitor_vocal_health(
             user_id=request.user_id,
             vocal_metrics=request.vocal_metrics,
             environmental_data=request.environmental_data
         )
-        
+
         # Wait for both analyses to complete
         personality_result, health_result = await asyncio.gather(
             personality_task, health_task
         )
-        
+
         # Generate integrated insights
         integrated_insights = {
             "personality_evolution": personality_result,
@@ -183,13 +183,13 @@ async def integrated_vocal_analysis(
                 personality_result, health_result
             )
         }
-        
+
         return {
             "success": True,
             "data": integrated_insights,
             "message": "Integrated vocal analysis completed"
         }
-        
+
     except Exception as e:
         logger.error(f"Error in integrated analysis: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -201,10 +201,10 @@ async def get_dashboard_insights(user_id: str):
         # Get both profiles
         personality_profile = await enhanced_letta.get_personality_profile(user_id)
         health_profile = await enhanced_letta.get_health_profile(user_id)
-        
+
         # Use timezone-aware datetime for calculations
         now_utc = datetime.now(pytz.utc)
-        
+
         # Handle timezone conversion for created_at
         if personality_profile.created_at.tzinfo is None:
             # If created_at is naive, assume it's UTC
@@ -212,9 +212,9 @@ async def get_dashboard_insights(user_id: str):
         else:
             # If it's already timezone-aware, convert to UTC
             created_at_utc = personality_profile.created_at.astimezone(pytz.utc)
-        
+
         days_training = max(1, (now_utc - created_at_utc).days)
-        
+
         dashboard_data = {
             "personality_summary": {
                 "type": personality_profile.personality_type.value,
@@ -233,13 +233,13 @@ async def get_dashboard_insights(user_id: str):
                 personality_profile, health_profile
             )
         }
-        
+
         return {
             "success": True,
             "data": dashboard_data,
             "message": "Dashboard insights retrieved"
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting dashboard insights: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))
