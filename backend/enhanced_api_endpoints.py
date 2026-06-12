@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional, List
 import logging
 from datetime import datetime
 import pytz
-from enhanced_letta_service import EnhancedLettaService, VocalPersonalityType, HealthRiskLevel
+from enhanced_letta_service import EnhancedLettaService, VocalPersonalityType, HealthRiskLevel, VocalCoachingAdvisor
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -176,10 +176,10 @@ async def integrated_vocal_analysis(
         integrated_insights = {
             "personality_evolution": personality_result,
             "health_monitoring": health_result,
-            "integrated_recommendations": _generate_integrated_recommendations(
+            "integrated_recommendations": VocalCoachingAdvisor.generate_integrated_recommendations(
                 personality_result, health_result
             ),
-            "next_session_guidance": _generate_next_session_guidance(
+            "next_session_guidance": VocalCoachingAdvisor.generate_next_session_guidance(
                 personality_result, health_result
             )
         }
@@ -229,7 +229,7 @@ async def get_dashboard_insights(user_id: str):
                 "optimal_windows": len(health_profile.optimal_practice_windows),
                 "last_check": health_profile.last_health_check.isoformat() if health_profile.last_health_check else now_utc.isoformat()
             },
-            "recommendations": _generate_dashboard_recommendations(
+            "recommendations": VocalCoachingAdvisor.generate_dashboard_recommendations(
                 personality_profile, health_profile
             )
         }
@@ -242,48 +242,4 @@ async def get_dashboard_insights(user_id: str):
         
     except Exception as e:
         logger.error(f"Error getting dashboard insights: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-def _generate_integrated_recommendations(personality_result: Dict[str, Any], health_result: Dict[str, Any]) -> List[str]:
-    """Generate integrated recommendations based on both personality and health analysis"""
-    recommendations = []
-    
-    # Personality-based recommendations
-    if personality_result.get("breakthrough_detection", {}).get("has_breakthrough"):
-        recommendations.append("🎉 Breakthrough detected! Continue with current practice intensity")
-    
-    # Health-based recommendations
-    if health_result.get("recovery_needs", {}).get("recovery_needed"):
-        recommendations.append("⚠️ Vocal rest recommended - limit practice to light exercises")
-    
-    # Combined recommendations
-    recommendations.extend([
-        "📈 Your vocal personality is evolving - stay consistent with practice",
-        "🎯 Focus on breath support for optimal vocal health",
-        "💡 Consider practicing during your optimal time windows"
-    ])
-    
-    return recommendations
-
-def _generate_next_session_guidance(personality_result: Dict[str, Any], health_result: Dict[str, Any]) -> Dict[str, Any]:
-    """Generate guidance for the next practice session"""
-    return {
-        "recommended_duration": "15-20 minutes" if health_result.get("strain_indicators") else "20-30 minutes",
-        "focus_areas": ["breath support", "vocal consistency"],
-        "exercises": ["lip trills", "gentle scales", "sustained tones"],
-        "cautions": health_result.get("recommendations", [])
-    }
-
-def _generate_dashboard_recommendations(personality_profile, health_profile) -> List[str]:
-    """Generate recommendations for dashboard display"""
-    recommendations = []
-    
-    if personality_profile.evolution_score < 3.0:
-        recommendations.append("Focus on consistency to boost your vocal evolution")
-    
-    if health_profile.current_risk_level == HealthRiskLevel.MODERATE:
-        recommendations.append("Consider reducing practice intensity temporarily")
-    
-    recommendations.append("Your personalized coaching is adapting to your progress")
-    
-    return recommendations 
+        raise HTTPException(status_code=500, detail=str(e)) 

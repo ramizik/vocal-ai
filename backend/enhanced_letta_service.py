@@ -624,4 +624,63 @@ class EnhancedLettaService:
         if dt.tzinfo is None:
             # If no timezone info, assume UTC
             dt = pytz.utc.localize(dt)
-        return dt 
+        return dt
+
+class VocalCoachingAdvisor:
+    """Combines vocal coaching, feedback, and session recommendations into unified analysis logic"""
+
+    @staticmethod
+    def generate_integrated_recommendations(
+        personality_result: Dict[str, Any],
+        health_result: Dict[str, Any]
+    ) -> List[str]:
+        """Generate integrated recommendations based on both personality and health analysis"""
+        recommendations = []
+        
+        # Personality-based recommendations
+        if personality_result.get("breakthrough_detection", {}).get("has_breakthrough"):
+            recommendations.append("🎉 Breakthrough detected! Continue with current practice intensity")
+        
+        # Health-based recommendations
+        if health_result.get("recovery_needs", {}).get("recovery_needed"):
+            recommendations.append("⚠️ Vocal rest recommended - limit practice to light exercises")
+        
+        # Combined recommendations
+        recommendations.extend([
+            "📈 Your vocal personality is evolving - stay consistent with practice",
+            "🎯 Focus on breath support for optimal vocal health",
+            "💡 Consider practicing during your optimal time windows"
+        ])
+        
+        return recommendations
+
+    @staticmethod
+    def generate_next_session_guidance(
+        personality_result: Dict[str, Any],
+        health_result: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Generate guidance for the next practice session"""
+        return {
+            "recommended_duration": "15-20 minutes" if health_result.get("strain_indicators") else "20-30 minutes",
+            "focus_areas": ["breath support", "vocal consistency"],
+            "exercises": ["lip trills", "gentle scales", "sustained tones"],
+            "cautions": health_result.get("recommendations", [])
+        }
+
+    @staticmethod
+    def generate_dashboard_recommendations(
+        personality_profile: VocalPersonalityProfile,
+        health_profile: VocalHealthProfile
+    ) -> List[str]:
+        """Generate recommendations for dashboard display"""
+        recommendations = []
+        
+        if personality_profile.evolution_score < 3.0:
+            recommendations.append("Focus on consistency to boost your vocal evolution")
+        
+        if health_profile.current_risk_level == HealthRiskLevel.MODERATE:
+            recommendations.append("Consider reducing practice intensity temporarily")
+        
+        recommendations.append("Your personalized coaching is adapting to your progress")
+        
+        return recommendations 
