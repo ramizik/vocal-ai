@@ -111,93 +111,108 @@ class EnhancedLettaService:
         if not self.letta_client:
             return
             
+        agents_config = [
+            {
+                "key": "personality_coach",
+                "name": "Personality Coach",
+                "memory_blocks": [
+                    {
+                        "label": "vocal_personality_core",
+                        "description": "Core vocal characteristics and evolving personality traits based on user's practice patterns, preferences, and breakthrough moments",
+                        "value": "",
+                        "limit": 8000
+                    },
+                    {
+                        "label": "breakthrough_moments",
+                        "description": "Significant vocal breakthroughs, learning milestones, and memorable coaching moments that shape personality development",
+                        "value": "",
+                        "limit": 6000
+                    },
+                    {
+                        "label": "coaching_adaptation",
+                        "description": "Adaptive coaching style preferences and effective methods based on personality type and learning progress",
+                        "value": "",
+                        "limit": 5000
+                    }
+                ]
+            },
+            {
+                "key": "health_monitor",
+                "name": "Health Monitor",
+                "memory_blocks": [
+                    {
+                        "label": "vocal_strain_patterns",
+                        "description": "Tracks vocal stress indicators, warning signs, and patterns that lead to vocal fatigue or strain",
+                        "value": "",
+                        "limit": 7000
+                    },
+                    {
+                        "label": "recovery_optimization",
+                        "description": "Learning optimal rest periods, recovery strategies, and rehabilitation techniques based on individual patterns",
+                        "value": "",
+                        "limit": 5000
+                    },
+                    {
+                        "label": "environmental_correlations",
+                        "description": "Weather, stress, seasonal, and environmental factor impacts on vocal performance and health",
+                        "value": "",
+                        "limit": 6000
+                    }
+                ]
+            },
+            {
+                "key": "pattern_analyst",
+                "name": "Pattern Analyst",
+                "memory_blocks": [
+                    {
+                        "label": "long_term_trends",
+                        "description": "Long-term vocal development patterns, trends, and correlations across months and years of practice",
+                        "value": "",
+                        "limit": 8000
+                    },
+                    {
+                        "label": "behavioral_insights",
+                        "description": "User behavior patterns, practice habits, and correlations with vocal improvement",
+                        "value": "",
+                        "limit": 6000
+                    }
+                ]
+            }
+        ]
+        
         try:
-            # Create Personality Coach Agent
-            if not self.agents["personality_coach"]:
-                personality_agent = self.letta_client.agents.create(
-                    memory_blocks=[
-                        {
-                            "label": "vocal_personality_core",
-                            "description": "Core vocal characteristics and evolving personality traits based on user's practice patterns, preferences, and breakthrough moments",
-                            "value": "",
-                            "limit": 8000
-                        },
-                        {
-                            "label": "breakthrough_moments",
-                            "description": "Significant vocal breakthroughs, learning milestones, and memorable coaching moments that shape personality development",
-                            "value": "",
-                            "limit": 6000
-                        },
-                        {
-                            "label": "coaching_adaptation",
-                            "description": "Adaptive coaching style preferences and effective methods based on personality type and learning progress",
-                            "value": "",
-                            "limit": 5000
-                        }
-                    ],
-                    tools=["web_search", "run_code"],
-                    model="openai/gpt-4o-mini",
-                    embedding="openai/text-embedding-3-small"
+            for config in agents_config:
+                self._get_or_create_agent(
+                    agent_key=config["key"],
+                    friendly_name=config["name"],
+                    memory_blocks=config["memory_blocks"]
                 )
-                self.agents["personality_coach"] = personality_agent.id
-                logger.info(f"Created Personality Coach Agent: {personality_agent.id}")
-            
-            # Create Health Monitor Agent
-            if not self.agents["health_monitor"]:
-                health_agent = self.letta_client.agents.create(
-                    memory_blocks=[
-                        {
-                            "label": "vocal_strain_patterns",
-                            "description": "Tracks vocal stress indicators, warning signs, and patterns that lead to vocal fatigue or strain",
-                            "value": "",
-                            "limit": 7000
-                        },
-                        {
-                            "label": "recovery_optimization",
-                            "description": "Learning optimal rest periods, recovery strategies, and rehabilitation techniques based on individual patterns",
-                            "value": "",
-                            "limit": 5000
-                        },
-                        {
-                            "label": "environmental_correlations",
-                            "description": "Weather, stress, seasonal, and environmental factor impacts on vocal performance and health",
-                            "value": "",
-                            "limit": 6000
-                        }
-                    ],
-                    tools=["web_search", "run_code"],
-                    model="openai/gpt-4o-mini",
-                    embedding="openai/text-embedding-3-small"
-                )
-                self.agents["health_monitor"] = health_agent.id
-                logger.info(f"Created Health Monitor Agent: {health_agent.id}")
-            
-            # Create Pattern Analyst Agent
-            if not self.agents["pattern_analyst"]:
-                pattern_agent = self.letta_client.agents.create(
-                    memory_blocks=[
-                        {
-                            "label": "long_term_trends",
-                            "description": "Long-term vocal development patterns, trends, and correlations across months and years of practice",
-                            "value": "",
-                            "limit": 8000
-                        },
-                        {
-                            "label": "behavioral_insights",
-                            "description": "User behavior patterns, practice habits, and correlations with vocal improvement",
-                            "value": "",
-                            "limit": 6000
-                        }
-                    ],
-                    tools=["web_search", "run_code"],
-                    model="openai/gpt-4o-mini",
-                    embedding="openai/text-embedding-3-small"
-                )
-                self.agents["pattern_analyst"] = pattern_agent.id
-                logger.info(f"Created Pattern Analyst Agent: {pattern_agent.id}")
-                
         except Exception as e:
             logger.error(f"Error initializing agents: {str(e)}")
+            
+    def _get_or_create_agent(
+        self,
+        agent_key: str,
+        friendly_name: str,
+        memory_blocks: List[Dict[str, Any]]
+    ) -> Optional[str]:
+        """Helper to retrieve or create a Letta agent if it doesn't exist"""
+        if self.agents.get(agent_key):
+            return self.agents[agent_key]
+            
+        try:
+            agent = self.letta_client.agents.create(
+                memory_blocks=memory_blocks,
+                tools=["web_search", "run_code"],
+                model="openai/gpt-4o-mini",
+                embedding="openai/text-embedding-3-small"
+            )
+            self.agents[agent_key] = agent.id
+            logger.info(f"Created {friendly_name} Agent: {agent.id}")
+            return agent.id
+        except Exception as e:
+            logger.error(f"Failed to create {friendly_name} Agent: {str(e)}")
+            return None
     
     async def get_personality_profile(self, user_id: str) -> VocalPersonalityProfile:
         """Get or create user's vocal personality profile"""
